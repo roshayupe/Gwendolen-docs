@@ -25,8 +25,8 @@ The system must support **tens of thousands of books** without schema redesign.
 | 5 | Global Vocabulary Index      | ✅ done |
 | 6 | Vocabulary Cache Engine      | ✅ done |
 | 7 | Deterministic Lesson Builder | ✅ done |
-| 8 | Fragm Hash Cache + Scal Stor | ⏳ current |
-| 9 | Large-Scale Book Processing  | planned |
+| 8 | Fragm Hash Cache + Scal Stor | ✅ done |
+| 9 | Large-Scale Book Processing  | ⏳ current |
 
 ---
 
