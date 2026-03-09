@@ -19,10 +19,10 @@ The system must support **tens of thousands of books** without schema redesign.
 |-----------|------|--------|
 | 0 | Test Infrastructure | ✅ done |
 | 1 | Golden Book Fragment Engine | ✅ done |
-| 2 | Schema Stabilization | ⏳ current |
-| 3 | Vocabulary Normalization | planned |
-| 4 | Vocabulary Deduplication | planned |
-| 5 | Global Vocabulary Index | planned |
+| 2 | Schema Stabilization | ✅ done |
+| 3 | Vocabulary Normalization | ✅ done |
+| 4 | Vocabulary Deduplication | ✅ done |
+| 5 | Global Vocabulary Index | ⏳ current |
 | 6 | Vocabulary Cache Engine | planned |
 | 7 | Deterministic Lesson Builder | planned |
 | 8 | Large-Scale Book Processing | planned |
