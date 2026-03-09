@@ -15,17 +15,17 @@ The system must support **tens of thousands of books** without schema redesign.
 
 # Milestone Overview
 
-| Milestone | Name | Status |
-|-----------|------|--------|
-| 0 | Test Infrastructure | ✅ done |
-| 1 | Golden Book Fragment Engine | ✅ done |
-| 2 | Schema Stabilization | ✅ done |
-| 3 | Vocabulary Normalization | ✅ done |
-| 4 | Vocabulary Deduplication | ✅ done |
-| 5 | Global Vocabulary Index | ⏳ current |
-| 6 | Vocabulary Cache Engine | planned |
+| Milestone | Name |                  Status |
+|-----------|------|-------------------------|
+| 0 | Test Infrastructure          | ✅ done |
+| 1 | Golden Book Fragment Engine  | ✅ done |
+| 2 | Schema Stabilization         | ✅ done |
+| 3 | Vocabulary Normalization     | ✅ done |
+| 4 | Vocabulary Deduplication     | ✅ done |
+| 5 | Global Vocabulary Index      | ✅ done |
+| 6 | Vocabulary Cache Engine      | ⏳ current |
 | 7 | Deterministic Lesson Builder | planned |
-| 8 | Large-Scale Book Processing | planned |
+| 8 | Large-Scale Book Processing  | planned |
 
 ---
 
