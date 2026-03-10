@@ -26,7 +26,7 @@ The system must support **tens of thousands of books** without schema redesign.
 | 6 | Vocabulary Cache Engine      | ✅ done |
 | 7 | Deterministic Lesson Builder | ✅ done |
 | 8 | Fragm Hash Cache + Scal Stor | ✅ done |
-| 9 | Large-Scale Book Processing  | ⏳ current |
+| 9 | Large-Scale Book Processing  | ✅ done |
 
 ---
 
@@ -109,7 +109,7 @@ Throw explicit errors when validation fails.
 
 Do not use external libraries.
 
-
+buildLesson
 ---
 
 ## Task 2.3 — Add schema tests
