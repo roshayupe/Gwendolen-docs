@@ -1,23 +1,74 @@
 ```mermaid
 flowchart TD
-  A[EPUB bytes/file] --> B[epub/unzip + epub/chapters]
-  B --> C[generator/generateFragmentsFromEpub]
-  C --> D[Candidate vocabulary extraction]
-  D --> E[vocabularyCache lookup]
-  E --> F[AI generation for missing terms]
-  F --> G[schema/normalization]
-  G --> H[vocabulary/deduplicateVocabulary]
-  H --> I[schema/validateVocabularyItem]
-  I --> J[lesson/buildLesson]
-  J --> K[assembler/assembleBook]
-  K --> L[pipeline/writeBookToRepository]
 
-  J --> M[cache/fragmentHashCache update]
-  J --> N[vocabulary/buildVocabularyIndex update]
+%% =========================
+%% INPUT
+%% =========================
 
-  O[processing/processBook] --> C
-  O --> M
-  O --> N
-  P[processing/processLibrary] --> O
+EPUB[EPUB File]
 
+%% =========================
+%% PARSER LAYER
+%% =========================
+
+EPUB --> UNZIP[unzipEpubFile]
+UNZIP --> OPF[parse content.opf]
+OPF --> SPINE[extractSpineHtmlFiles]
+SPINE --> CHAPTERS[extractChapters]
+
+%% =========================
+%% FRAGMENT ENGINE
+%% =========================
+
+CHAPTERS --> SPLIT[splitChapterBalanced]
+SPLIT --> FRAGMENTS[Fragments]
+
+%% =========================
+%% HASH ENGINE
+%% =========================
+
+FRAGMENTS --> HASH[compute fragmentId sha1]
+HASH --> HASHCACHE[Fragment Hash Cache]
+
+%% =========================
+%% VOCABULARY ENGINE
+%% =========================
+
+FRAGMENTS --> AI[AI Vocabulary Extraction]
+
+AI --> NORMALIZE[normalizeVocabularyItem]
+NORMALIZE --> DEDUP[deduplicateVocabulary]
+DEDUP --> VOCABCACHE[Vocabulary Cache]
+
+%% =========================
+%% LESSON BUILDER
+%% =========================
+
+VOCABCACHE --> LESSON[buildLesson]
+
+HASHCACHE --> LESSON
+
+LESSON --> LESSONJSON[Lesson JSON]
+
+%% =========================
+%% ASSEMBLER
+%% =========================
+
+LESSONJSON --> ASSEMBLER[assembleBook]
+
+ASSEMBLER --> CHAPTERMANIFEST[chapter.json]
+CHAPTERMANIFEST --> BOOKMANIFEST[book.json]
+BOOKMANIFEST --> CATALOG[catalog.json]
+
+%% =========================
+%% REPOSITORY
+%% =========================
+
+CATALOG --> REPO[Repository Content Structure]
+
+%% =========================
+%% READER
+%% =========================
+
+REPO --> READER[Reader UI]
 ```
