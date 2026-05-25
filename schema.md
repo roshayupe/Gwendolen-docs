@@ -9,14 +9,35 @@ Sources used:
 - `src/pipeline/generationPipeline.ts`
 - `src/schema/types.ts`
 - `src/schema/normalization.ts`
+- `src/schema/namedEntities.ts`
 - `schemas/lesson.schema.json`
 - checked-in lesson JSON fixtures under `content/` and repository validation tests
 
 This document is intentionally strict. It reflects the current implementation, including compatibility rules, and does not introduce new fields or nested objects that are not present in code.
 
+# Schema Stabilization Milestone
+
+This file is the canonical schema documentation location for the current
+project. Do not create a competing `docs/schema.md` unless this document is
+retired deliberately.
+
+The stabilization milestone should distinguish three things:
+
+- **Current runtime schema**: what generated lesson JSON and validators accept
+  today.
+- **Planned canonical fields**: fields that are intended to become stable
+  public contracts, but may not be fully enforced by runtime code yet.
+- **Debug-only diagnostics**: QA metadata from debug/full-book regression,
+  including Named Entity review and dry-run learning decisions. Debug metadata
+  is not canonical lesson content and must not be written into lesson JSON
+  unless a future schema migration explicitly adds it.
+
+When planned schema language differs from current runtime behavior, this
+document calls that out instead of silently replacing the current contract.
+
 # Lesson Schema
 
-Current generated lesson objects have this exact top-level structure:
+Current generated lesson objects have this top-level structure:
 
 ```json
 {
@@ -53,7 +74,8 @@ Current generated lesson objects have this exact top-level structure:
       }
     }
   },
-  "vocabulary": []
+  "vocabulary": [],
+  "namedEntities": []
 }
 ```
 
@@ -67,6 +89,7 @@ Top-level fields:
 - `text: string`
 - `meta: LessonMeta`
 - `vocabulary: VocabularyItem[]`
+- `namedEntities?: NamedEntityItem[]`
 
 Exact generation behavior:
 
@@ -77,6 +100,10 @@ Exact generation behavior:
 - `text` is normalized fragment text with normalized line endings, trailing whitespace removed per line, and outer whitespace trimmed.
 
 `meta` is flat. There is no current generated structure like `meta.book`, `meta.chapter`, or `meta.fragment`.
+
+`namedEntities` is optional and present only when spaCy NER produced lesson-level
+entities. It is separate from `vocabulary`; named entities are not vocabulary
+items and do not receive CEFR levels.
 
 `meta` fields generated today:
 
@@ -106,6 +133,10 @@ Important compatibility note:
 - The runtime JSON Schema and validation tests still accept a legacy lesson-meta variant using `chapterIndex`, `chapterTitle`, and `fragmentsInChapter`.
 - Current generation code writes `sectionIndex`, `sectionTitle`, and `fragmentsInSection`.
 - `buildLesson` still supports legacy input names internally, but current generated output is the `section*` form.
+- Runtime TypeScript validation and `schemas/lesson.schema.json` both support
+  optional `namedEntities`.
+- Debug-only Named Entity review fields are intentionally excluded from
+  canonical lesson JSON and from `schemas/lesson.schema.json`.
 
 About the fields requested in the task:
 
@@ -123,7 +154,9 @@ Current normalized vocabulary items use this structure:
   "word": "string",
   "lemma": "string",
   "lemmaId": "string",
-  "pos": "noun | verb | adjective | adverb | phrase",
+  "pos": "noun | verb | adjective | adverb | phrase | phrasal_verb | prepositional_verb",
+  "type": "word | phrase | phrasal_verb | prepositional_verb",
+  "source": "dictionary_phrasal | spacy_phrase | fixed_expression | word",
   "wordKey": "string",
   "level": "A1 | A2 | B1 | B2 | C1 | C2",
   "difficultyScore": 0.0,
@@ -138,12 +171,17 @@ Current normalized vocabulary items use this structure:
 }
 ```
 
+For schema-stabilization work, `VocabularyItem` is the canonical name for this
+object shape inside `lesson.vocabulary`.
+
 Field list:
 
 - `word: string` required
 - `lemma: string` required
 - `lemmaId: string` required
-- `pos: "noun" | "verb" | "adjective" | "adverb" | "phrase"` required
+- `pos: "noun" | "verb" | "adjective" | "adverb" | "phrase" | "phrasal_verb" | "prepositional_verb"` required
+- `type?: "word" | "phrase" | "phrasal_verb" | "prepositional_verb"`
+- `source?: "dictionary_phrasal" | "spacy_phrase" | "fixed_expression" | "word"`
 - `wordKey: string` required
 - `level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2"` required
 - `difficultyScore?: number`
@@ -151,6 +189,39 @@ Field list:
 - `translations: Record<string, { translation: string }>` required at runtime
 - `definition?: string`
 - `example?: string`
+- `exampleTranslation?: string`
+- `exampleStart?: number`
+- `exampleEnd?: number`
+- `matchedForm?: string`
+
+Canonical vocabulary identity:
+
+- `lemma` is the normalized dictionary form used for display and lookup.
+- `pos` is the normalized part of speech, not raw model output.
+- Planned canonical `wordKey` rule: `{normalized lemma}_{normalized pos}`.
+- Current runtime implementation stores `lemmaId` and validates
+  `wordKey === {lemmaId}_{pos}`.
+- Today, generated `lemmaId` is derived from normalized `lemma`, so the planned
+  rule and current runtime rule are intended to be equivalent for generated
+  content.
+- Do not remove `lemmaId` or change `wordKey` semantics without a migration and
+  validator update.
+- JSON Schema validates the structural shape and enum values for vocabulary
+  items. Runtime validation enforces cross-field identity rules such as
+  `wordKey === {lemmaId}_{pos}`.
+- Normalization is responsible for producing `lemmaId`, normalized `pos`, and
+  `wordKey` before validation.
+
+Current strict CEFR enum:
+
+`A1 | A2 | B1 | B2 | C1 | C2`
+
+Planned stabilization fields:
+
+- `lemmaId`: keep as a stable normalized lemma identifier unless a future
+  migration replaces it explicitly.
+- `difficultyScore`: optional today; intended to become a stable numeric
+  difficulty signal once the scoring model is finalized.
 
 Normalization details from `src/schema/normalization.ts`:
 
@@ -183,6 +254,45 @@ Notes:
 - Current validation requires every `translations[lang]` value to be an object with a non-empty `translation` string.
 - The TypeScript type still allows `string | { translation: string }`, but normalized/generated data and validation use the object form.
 - The legacy raw input field `translation` is converted into `translations.ru.translation` during normalization.
+
+# Named Entity Schema
+
+Current runtime lessons may include a separate `namedEntities` array:
+
+```json
+{
+  "entityKey": "diana_wynne_jones_person",
+  "text": "Diana Wynne Jones",
+  "normalizedText": "diana wynne jones",
+  "entityType": "PERSON",
+  "spacyLabel": "PERSON",
+  "entityCategory": "character_candidate",
+  "learningType": "named_entity",
+  "difficultyMarker": "proper_name",
+  "source": "spacy_ner",
+  "start": 0,
+  "end": 17,
+  "tokenIndexes": [0, 1, 2]
+}
+```
+
+Named entity rules:
+
+- `namedEntities` are separate from `vocabulary`.
+- Named entities do not receive CEFR `level`.
+- `learningType` is always `named_entity`.
+- `difficultyMarker` is `proper_name` or `entity_value`.
+- `entityKey` is deterministic: normalized entity text plus normalized entity
+  type, for example `london_gpe`.
+- `start` and `end` are offsets into final `lesson.text`.
+- Runtime validation requires `lesson.text.slice(start, end) === text`.
+
+JSON Schema support:
+
+- Runtime `validateLesson` supports `namedEntities`.
+- `schemas/lesson.schema.json` includes optional `namedEntities`.
+- Debug-only review, recommendation, and dry-run learning-decision fields remain
+  excluded from canonical lesson JSON.
 
 # Language Model
 
@@ -227,7 +337,9 @@ Vocabulary rules:
 - `word` is required and non-empty
 - `lemma` is required and non-empty
 - `lemmaId` is required and non-empty
-- `pos` must be one of `noun`, `verb`, `adjective`, `adverb`, `phrase`
+- `pos` must be one of `noun`, `verb`, `adjective`, `adverb`, `phrase`, `phrasal_verb`, `prepositional_verb`
+- optional `type` must be one of `word`, `phrase`, `phrasal_verb`, `prepositional_verb`
+- optional `source` must be one of `dictionary_phrasal`, `spacy_phrase`, `fixed_expression`, `word`
 - `level` must be one of `A1`, `A2`, `B1`, `B2`, `C1`, `C2`
 - `wordKey` must equal `{lemmaId}_{pos}`
 - `translations` must exist
@@ -238,6 +350,9 @@ Vocabulary rules:
 Language-signal rules:
 
 - if `example` is present and `word` is non-empty, `example` must contain `word`
+- current runtime requires `matchedForm` when `example` is present
+- when `exampleStart` or `exampleEnd` is present, both must be present and must
+  match the exact `lesson.text` substring for `example`
 - if `ipa` is present, it must not contain digits
 - if `ipa` is present, it must pass the current basic language-signal check
 - if `definition` is present, it must match the book-language script signal
@@ -249,6 +364,22 @@ Important precision note:
 - when present, runtime validation effectively requires it to be non-empty because it is trimmed and checked
 - `definition` and `example` are optional in the current schema
 - `pos` normalization happens during vocabulary normalization, not inside `validate.ts`
+
+Named entity rules:
+
+- `namedEntities`, when present, must be an array
+- each item must have `entityKey`, `text`, `normalizedText`, `entityType`,
+  `spacyLabel`, `entityCategory`, `learningType`, `difficultyMarker`, `source`,
+  `start`, `end`, and non-empty `tokenIndexes`
+- `learningType` must equal `named_entity`
+- `source` must equal `spacy_ner`
+- `entityCategory` and `difficultyMarker` must match deterministic mappings
+  from `entityType`
+- `entityKey` must equal the deterministic key generated from
+  `normalizedText` and `entityType`
+- `level` must not be set
+- `start` and `end` must point into `lesson.text`, and the substring must
+  exactly equal `text`
 
 # Determinism Rules
 
@@ -272,6 +403,69 @@ ID determinism:
 
 - current generated ids use `sct`
 - legacy `ch` ids can still appear when legacy chapter input fields are used with `buildLesson`
+
+# Word / Vocabulary Index Entry
+
+The repository vocabulary index is derived from canonical lesson vocabulary. It
+is not a separate source of truth.
+
+Current index entries group occurrences under lemma-level records and preserve
+word/POS-specific records beneath each lemma. The stable concepts are:
+
+- `schemaVersion: 1`
+- source `language`
+- lemma key / `lemmaId`
+- `lemma`
+- `words` keyed by `wordKey`
+- normalized `pos`
+- CEFR `level`
+- occurrence records with `bookId`, section/chapter position, and
+  `fragmentId`
+
+Identifier rules:
+
+- Use the same normalized lemma and normalized POS identity as `VocabularyItem`.
+- `wordKey` must remain deterministic across regenerated books.
+- Occurrence ordering must be deterministic by book/section/fragment order.
+- Indexes are rebuildable derived content; user progress must not be stored in
+  them.
+
+# Content Data vs User Progress
+
+Generated content is immutable project data. User progress is mutable user data.
+
+Content data includes:
+
+- catalog, book, section, and lesson manifests
+- lesson text and `lesson.vocabulary`
+- generated named entities once/if they are part of the canonical lesson schema
+- derived vocabulary indexes
+
+User progress includes:
+
+- learned/known state
+- review scheduling state
+- per-user analytics
+- notes, highlights, or learner-specific overrides
+
+Progress should reference stable content identifiers such as `wordKey`,
+`fragmentId`, `lesson.id`, and book identifiers. Progress must not be written
+back into generated lesson JSON or repository vocabulary indexes.
+
+# Debug Metadata Is Not Canonical Content
+
+Full-book regression and debug UI diagnostics can expose rich metadata that is
+useful for QA, including:
+
+- Named Entity review status and reasons
+- Named Entity to vocabulary overlap diagnostics
+- dry-run `learningDecision`
+- phrasal verb audit and review cleanup diagnostics
+- performance, benchmark, and quality-gate summaries
+
+These diagnostics are reporting-only unless a future schema migration explicitly
+adds them to canonical content. In particular, dry-run `learningDecision` must
+not filter vocabulary and must not be stored in canonical lesson JSON.
 
 # Example
 
@@ -326,12 +520,30 @@ Trimmed example matching the current canonical generated shape:
         }
       }
     }
+  ],
+  "namedEntities": [
+    {
+      "entityKey": "diana_wynne_jones_person",
+      "text": "Diana Wynne Jones",
+      "normalizedText": "diana wynne jones",
+      "entityType": "PERSON",
+      "spacyLabel": "PERSON",
+      "entityCategory": "character_candidate",
+      "learningType": "named_entity",
+      "difficultyMarker": "proper_name",
+      "source": "spacy_ner",
+      "start": 0,
+      "end": 17,
+      "tokenIndexes": [0, 1, 2]
+    }
   ]
 }
 ```
 
 Example provenance:
 
-- structure from `buildLesson.ts`, `types.ts`, and `lesson.schema.json`
+- structure from `buildLesson.ts`, `types.ts`, `validate.ts`, and `lesson.schema.json`
 - field values adapted from repository validation fixtures and lesson schema tests
 - trimmed to the canonical generated `section*` form used by the current pipeline
+- `namedEntities` shown from current runtime TypeScript validation and
+  `schemas/lesson.schema.json`
