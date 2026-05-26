@@ -159,7 +159,9 @@ Current normalized vocabulary items use this structure:
   "source": "dictionary_phrasal | spacy_phrase | fixed_expression | word",
   "wordKey": "string",
   "level": "A1 | A2 | B1 | B2 | C1 | C2",
+  "levelSource": "cefr_frequency",
   "difficultyScore": 0.0,
+  "difficultySource": "zipf",
   "ipa": "string",
   "translations": {
     "ru": {
@@ -184,7 +186,9 @@ Field list:
 - `source?: "dictionary_phrasal" | "spacy_phrase" | "fixed_expression" | "word"`
 - `wordKey: string` required
 - `level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2"` required
+- `levelSource?: "vocabulary_index" | "cefr_frequency" | "phrase_index" | "dictionary_phrase" | "head_verb_index" | "phrase_fallback" | "difficulty_heuristic"`
 - `difficultyScore?: number`
+- `difficultySource?: "zipf" | "cefr_frequency" | "vocabulary_index" | "difficulty_heuristic" | "none"`
 - `ipa?: string`
 - `translations: Record<string, { translation: string }>` required at runtime
 - `definition?: string`
@@ -249,12 +253,29 @@ Current strict CEFR enum:
 
 `A1 | A2 | B1 | B2 | C1 | C2`
 
+Difficulty provenance:
+
+- `level` remains the learner-facing CEFR level.
+- `levelSource` is optional provenance for the selected CEFR level.
+- `difficultyScore` is optional advisory numeric difficulty; it does not replace
+  `level`.
+- `difficultySource` is optional provenance for `difficultyScore`.
+- `difficulty_heuristic` is the canonical fallback source label. Plain
+  `heuristic` is not accepted, to avoid confusion with the Debug UI heuristics
+  checkbox.
+- Raw Zipf values, frequency evidence, `currentDifficulty` /
+  `shadowDifficulty`, and resolver traces remain debug-only or future
+  repository-index metadata. They are not canonical lesson JSON fields.
+- Runtime validation and JSON Schema support `levelSource` and
+  `difficultySource`, but current generation does not emit them automatically
+  yet.
+
 Planned stabilization fields:
 
 - `lemmaId`: keep as a stable normalized lemma identifier unless a future
   migration replaces it explicitly.
-- `difficultyScore`: optional today; intended to become a stable numeric
-  difficulty signal once the scoring model is finalized.
+- `difficultyScore`: optional today; intended to become a stable advisory
+  numeric difficulty signal once the scoring model is finalized.
 
 Normalization details from `src/schema/normalization.ts`:
 
@@ -374,6 +395,11 @@ Vocabulary rules:
 - optional `type` must be one of `word`, `phrase`, `phrasal_verb`, `prepositional_verb`
 - optional `source` must be one of `dictionary_phrasal`, `spacy_phrase`, `fixed_expression`, `word`
 - `level` must be one of `A1`, `A2`, `B1`, `B2`, `C1`, `C2`
+- optional `levelSource` must be one of `vocabulary_index`,
+  `cefr_frequency`, `phrase_index`, `dictionary_phrase`,
+  `head_verb_index`, `phrase_fallback`, `difficulty_heuristic`
+- optional `difficultySource` must be one of `zipf`, `cefr_frequency`,
+  `vocabulary_index`, `difficulty_heuristic`, `none`
 - `wordKey` must equal `{lemmaId}_{pos}`
 - `translations` must exist
 - every translation key must be non-empty
