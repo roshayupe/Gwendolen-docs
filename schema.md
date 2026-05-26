@@ -193,6 +193,7 @@ Field list:
 - `exampleStart?: number`
 - `exampleEnd?: number`
 - `matchedForm?: string`
+- `phraseMatch?: { text: string; startInExample: number; endInExample: number }`
 
 Current `matchedForm` contract:
 
@@ -201,9 +202,24 @@ Current `matchedForm` contract:
 - `exampleStart` and `exampleEnd` locate the full `example` inside
   `lesson.text`; they do not currently locate a phrase match inside the
   example.
-- Multiword phrase alignment is not yet canonical. The current schema should
-  not store multiword phrase surfaces in `matchedForm`; use a future schema
-  migration for a dedicated phrase match/span field.
+
+Phrase match alignment:
+
+- `phraseMatch` is optional schema/runtime metadata for phrase-like vocabulary
+  items (`phrase`, `phrasal_verb`, `prepositional_verb`, or multiword
+  word/lemma values).
+- `phraseMatch.text` is the observed phrase surface inside `example`.
+- `phraseMatch.startInExample` and `phraseMatch.endInExample` are offsets inside
+  `example`, not offsets inside `lesson.text`.
+- When `exampleStart` is present, a lesson-text phrase span can be derived as
+  `exampleStart + phraseMatch.startInExample` and
+  `exampleStart + phraseMatch.endInExample`.
+- `phraseMatch` is alignment metadata only. It does not replace
+  `matchedForm`, `wordKey`, lemma/POS identity, CEFR level, translations, or
+  example offsets.
+- The schema and runtime validator support `phraseMatch`, but lesson generation
+  does not emit it automatically yet and legacy phrase rows have not been
+  migrated.
 
 Canonical vocabulary identity:
 
@@ -364,6 +380,8 @@ Language-signal rules:
 - current runtime requires `matchedForm` when `example` is present
 - `matchedForm` must be a single token; this runtime cross-field rule is not
   fully expressible in the current JSON Schema shape-only file
+- optional `phraseMatch`, when present, must be on a phrase-like item and its
+  offsets must match `phraseMatch.text` inside `example`
 - when `exampleStart` or `exampleEnd` is present, both must be present and must
   match the exact `lesson.text` substring for `example`
 - if `ipa` is present, it must not contain digits
