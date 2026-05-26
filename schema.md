@@ -266,9 +266,10 @@ Difficulty provenance:
 - Raw Zipf values, frequency evidence, `currentDifficulty` /
   `shadowDifficulty`, and resolver traces remain debug-only or future
   repository-index metadata. They are not canonical lesson JSON fields.
-- Runtime validation and JSON Schema support `levelSource` and
-  `difficultySource`, but current generation does not emit them automatically
-  yet.
+- Runtime validation, JSON Schema, and current generation support
+  `levelSource` and `difficultySource`. Generation emits `levelSource` for the
+  selected CEFR level and emits advisory `difficultyScore` /
+  `difficultySource` when an ordinary-word Zipf score is available.
 
 Planned stabilization fields:
 
