@@ -220,9 +220,12 @@ Phrase match alignment:
 - `phraseMatch` is alignment metadata only. It does not replace
   `matchedForm`, `wordKey`, lemma/POS identity, CEFR level, translations, or
   example offsets.
-- The schema and runtime validator support `phraseMatch`, but lesson generation
-  does not emit it automatically yet and legacy phrase rows have not been
-  migrated.
+- Current example extraction emits `phraseMatch` for phrase-like vocabulary
+  items when the selected example contains exactly one deterministic phrase
+  surface from `word` or `lemma`. It first uses case-sensitive matching, then a
+  case-insensitive exact fallback that stores the observed cased substring from
+  the example. It skips repeated, partial, inflected, fuzzy, and
+  punctuation-normalized matches.
 
 Canonical vocabulary identity:
 
