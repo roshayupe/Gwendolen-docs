@@ -197,7 +197,10 @@ Field list:
 
 Current `matchedForm` contract:
 
-- Runtime validation requires `matchedForm` when `example` exists.
+- Runtime validation requires `matchedForm` when an ordinary single-token
+  vocabulary item has `example`.
+- For phrase-like vocabulary items with `example`, runtime validation accepts
+  either a valid single-token `matchedForm` or a valid `phraseMatch`.
 - `matchedForm` is a single-token observed surface inside `example`.
 - `exampleStart` and `exampleEnd` locate the full `example` inside
   `lesson.text`; they do not currently locate a phrase match inside the
@@ -377,7 +380,10 @@ Vocabulary rules:
 Language-signal rules:
 
 - if `example` is present and `word` is non-empty, `example` must contain `word`
-- current runtime requires `matchedForm` when `example` is present
+- current runtime requires ordinary single-token vocabulary items to have
+  `matchedForm` when `example` is present
+- phrase-like vocabulary items may satisfy example alignment with either
+  single-token `matchedForm` or valid `phraseMatch`
 - `matchedForm` must be a single token; this runtime cross-field rule is not
   fully expressible in the current JSON Schema shape-only file
 - optional `phraseMatch`, when present, must be on a phrase-like item and its
