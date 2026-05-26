@@ -194,6 +194,17 @@ Field list:
 - `exampleEnd?: number`
 - `matchedForm?: string`
 
+Current `matchedForm` contract:
+
+- Runtime validation requires `matchedForm` when `example` exists.
+- `matchedForm` is a single-token observed surface inside `example`.
+- `exampleStart` and `exampleEnd` locate the full `example` inside
+  `lesson.text`; they do not currently locate a phrase match inside the
+  example.
+- Multiword phrase alignment is not yet canonical. The current schema should
+  not store multiword phrase surfaces in `matchedForm`; use a future schema
+  migration for a dedicated phrase match/span field.
+
 Canonical vocabulary identity:
 
 - `lemma` is the normalized dictionary form used for display and lookup.
@@ -351,6 +362,8 @@ Language-signal rules:
 
 - if `example` is present and `word` is non-empty, `example` must contain `word`
 - current runtime requires `matchedForm` when `example` is present
+- `matchedForm` must be a single token; this runtime cross-field rule is not
+  fully expressible in the current JSON Schema shape-only file
 - when `exampleStart` or `exampleEnd` is present, both must be present and must
   match the exact `lesson.text` substring for `example`
 - if `ipa` is present, it must not contain digits
