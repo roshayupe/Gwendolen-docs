@@ -186,7 +186,7 @@ Field list:
 - `source?: "dictionary_phrasal" | "spacy_phrase" | "fixed_expression" | "word"`
 - `wordKey: string` required
 - `level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2"` required
-- `levelSource?: "vocabulary_index" | "cefr_frequency" | "phrase_index" | "dictionary_phrase" | "head_verb_index" | "phrase_fallback" | "difficulty_heuristic"`
+- `levelSource?: "vocabulary_index" | "cefr_frequency" | "cefr_reference" | "cefr_context_review" | "phrase_index" | "dictionary_phrase" | "head_verb_index" | "phrase_fallback" | "difficulty_heuristic"`
 - `difficultyScore?: number`
 - `difficultySource?: "zipf" | "cefr_frequency" | "vocabulary_index" | "difficulty_heuristic" | "none"`
 - `ipa?: string`
@@ -257,6 +257,10 @@ Difficulty provenance:
 
 - `level` remains the learner-facing CEFR level.
 - `levelSource` is optional provenance for the selected CEFR level.
+- `cefr_reference` identifies a level imported from a cited, POS-aware CEFR
+  lexical reference rather than inferred from general word frequency.
+- `cefr_context_review` identifies a level assigned or confirmed from the
+  term's actual senses and examples in the published books.
 - `difficultyScore` is optional advisory numeric difficulty; it does not replace
   `level`.
 - `difficultySource` is optional provenance for `difficultyScore`.
@@ -397,7 +401,7 @@ Vocabulary rules:
 - optional `source` must be one of `dictionary_phrasal`, `spacy_phrase`, `fixed_expression`, `word`
 - `level` must be one of `A1`, `A2`, `B1`, `B2`, `C1`, `C2`
 - optional `levelSource` must be one of `vocabulary_index`,
-  `cefr_frequency`, `phrase_index`, `dictionary_phrase`,
+  `cefr_frequency`, `cefr_reference`, `cefr_context_review`, `phrase_index`, `dictionary_phrase`,
   `head_verb_index`, `phrase_fallback`, `difficulty_heuristic`
 - optional `difficultySource` must be one of `zipf`, `cefr_frequency`,
   `vocabulary_index`, `difficulty_heuristic`, `none`
@@ -471,29 +475,34 @@ ID determinism:
 - current generated ids use `sct`
 - legacy `ch` ids can still appear when legacy chapter input fields are used with `buildLesson`
 
-# Word / Vocabulary Index Entry
+# Vocabulary Lexicons and Occurrence Indexes
 
-The repository vocabulary index is derived from canonical lesson vocabulary. It
-is not a separate source of truth.
+Repository vocabulary metadata is derived from canonical lesson vocabulary. It
+is not a separate source of truth. Global lexical metadata is physically split
+by lexical kind:
 
-Current index entries group occurrences under lemma-level records and preserve
-word/POS-specific records beneath each lemma. The stable concepts are:
+- `data/indexes/vocabulary_<language>.json` has `schemaVersion: 2`,
+  `kind: "words"`, and contains single words only.
+- `data/indexes/vocabulary_mwe_<language>.json` has `schemaVersion: 2`,
+  `kind: "mwe"`, and contains lexicalized multi-word expressions only.
+- Ordinary syntactic phrases remain lesson-local and are not copied into either
+  global lexicon.
 
-- `schemaVersion: 1`
-- source `language`
-- lemma key / `lemmaId`
-- `lemma`
-- `words` keyed by `wordKey`
-- normalized `pos`
-- CEFR `level`
-- occurrence records with `bookId`, section/chapter position, and
-  `fragmentId`
+Both lexicons group entries under lemma-level records and preserve stable
+`wordKey`, normalized `pos`, CEFR `level`, IPA, forms, and translations. MWE
+entries additionally preserve `mweType` and `syntacticForm`.
+
+Occurrence/navigation data lives separately in each book at
+`book/indexes/vocabulary-occurrences.json`. It records the lesson and fragment
+locations needed by the Reader without making either global lexicon grow with
+every book.
 
 Identifier rules:
 
 - Use the same normalized lemma and normalized POS identity as `VocabularyItem`.
 - `wordKey` must remain deterministic across regenerated books.
-- Occurrence ordering must be deterministic by book/section/fragment order.
+- Per-book occurrence ordering must be deterministic by
+  book/section/fragment order.
 - Indexes are rebuildable derived content; user progress must not be stored in
   them.
 
