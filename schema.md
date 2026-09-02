@@ -192,7 +192,7 @@ Field list:
 - `ipa?: string`
 - `translations: Record<string, { translation: string }>` required at runtime
 - `definition?: string`
-- `example?: string`
+- `example?: string` (legacy/materialized form; canonical lessons may omit it)
 - `exampleTranslation?: string`
 - `exampleStart?: number`
 - `exampleEnd?: number`
@@ -202,22 +202,25 @@ Field list:
 Current `matchedForm` contract:
 
 - Runtime validation requires `matchedForm` when an ordinary single-token
-  vocabulary item has `example`.
-- For phrase-like vocabulary items with `example`, runtime validation accepts
+  vocabulary item has an effective example.
+- For phrase-like vocabulary items with an effective example, runtime validation accepts
   either a valid single-token `matchedForm` or a valid `phraseMatch`.
-- `matchedForm` is a single-token observed surface inside `example`.
-- `exampleStart` and `exampleEnd` locate the full `example` inside
-  `lesson.text`; they do not currently locate a phrase match inside the
-  example.
+- `matchedForm` is a single-token observed surface inside the effective example.
+- `exampleStart` and `exampleEnd` locate the effective example inside
+  `lesson.text`. Consumers derive it with
+  `lesson.text.slice(exampleStart, exampleEnd)`; `example`, when retained, must
+  be exactly equal to that slice.
+- The importer may narrow the original sentence to a source-backed clause when
+  dependency parsing finds a safe, concise span containing the vocabulary term.
 
 Phrase match alignment:
 
 - `phraseMatch` is optional schema/runtime metadata for phrase-like vocabulary
   items (`phrase`, `phrasal_verb`, `prepositional_verb`, or multiword
   word/lemma values).
-- `phraseMatch.text` is the observed phrase surface inside `example`.
+- `phraseMatch.text` is the observed phrase surface inside the effective example.
 - `phraseMatch.startInExample` and `phraseMatch.endInExample` are offsets inside
-  `example`, not offsets inside `lesson.text`.
+  the effective example, not offsets inside `lesson.text`.
 - When `exampleStart` is present, a lesson-text phrase span can be derived as
   `exampleStart + phraseMatch.startInExample` and
   `exampleStart + phraseMatch.endInExample`.
@@ -413,17 +416,21 @@ Vocabulary rules:
 
 Language-signal rules:
 
-- if `example` is present and `word` is non-empty, `example` must contain `word`
+- the effective example is `example`, or the exact `lesson.text` slice defined by
+  `exampleStart` and `exampleEnd` when `example` is omitted
+- if an effective example is present and `word` is non-empty, it must contain the
+  aligned surface
 - current runtime requires ordinary single-token vocabulary items to have
-  `matchedForm` when `example` is present
+  `matchedForm` when an effective example is present
 - phrase-like vocabulary items may satisfy example alignment with either
   single-token `matchedForm` or valid `phraseMatch`
 - `matchedForm` must be a single token; this runtime cross-field rule is not
   fully expressible in the current JSON Schema shape-only file
 - optional `phraseMatch`, when present, must be on a phrase-like item and its
-  offsets must match `phraseMatch.text` inside `example`
+  offsets must match `phraseMatch.text` inside the effective example
 - when `exampleStart` or `exampleEnd` is present, both must be present and must
-  match the exact `lesson.text` substring for `example`
+  define a valid non-empty `lesson.text` substring; materialized `example`, when
+  present, must exactly match it
 - if `ipa` is present, it must not contain digits
 - if `ipa` is present, it must pass the current basic language-signal check
 - if `definition` is present, it must match the book-language script signal
