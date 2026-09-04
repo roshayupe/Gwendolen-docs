@@ -504,6 +504,21 @@ Occurrence/navigation data lives separately in each book at
 locations needed by the Reader without making either global lexicon grow with
 every book.
 
+Published `.novelpack` files materialize the vocabulary metadata used by that
+book at `book/indexes/vocabulary-cards.json`. This is a derived, book-local subset
+of the canonical lesson vocabulary, keyed by `wordKey`; it is not another
+authoring source of truth. A packaged lesson declares
+`vocabularyFormat: "book-cards-v1"` and keeps `wordKey`, surface-form differences,
+example ranges, phrase matches, and other occurrence-specific fields. Shared
+lemma, POS, level, IPA, translation, and lexical-type fields are restored from the
+book card index when the lesson is loaded. Parallel-vocabulary links use the same
+cards before they are rendered.
+
+Packaged occurrence indexes use schema version 2. Their `lessons` array stores
+each `[sectionIndex, fragmentIndex, lessonId, fragmentId]` row once, while each
+`entries[wordKey]` value is an ordered array of indexes into that table. The
+Reader continues to accept the schema-version-1 object rows for older packages.
+
 Identifier rules:
 
 - Use the same normalized lemma and normalized POS identity as `VocabularyItem`.
