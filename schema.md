@@ -514,6 +514,11 @@ lemma, POS, level, IPA, translation, and lexical-type fields are restored from t
 book card index when the lesson is loaded. Parallel-vocabulary links use the same
 cards before they are rendered.
 
+When a catalog book exposes a guest-preview chapter, packaged lessons in that
+chapter reference a restricted card subset at
+`book/lessons/<chapterId>/indexes/vocabulary-cards.json`. The guest content policy
+allows that chapter-local path but does not expose the full book card index.
+
 Packaged occurrence indexes use schema version 2. Their `lessons` array stores
 each `[sectionIndex, fragmentIndex, lessonId, fragmentId]` row once, while each
 `entries[wordKey]` value is an ordered array of indexes into that table. The
