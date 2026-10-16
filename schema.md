@@ -317,6 +317,34 @@ Notes:
 - The TypeScript type still allows `string | { translation: string }`, but normalized/generated data and validation use the object form.
 - The legacy raw input field `translation` is converted into `translations.ru.translation` during normalization.
 
+## Dictionary variants and occurrence selection
+
+`translations[lang]` may additionally contain `candidates`, a non-empty array of
+`{ id, text, sources, pos?, confidence?, senseIds? }`. Each source is
+`{ provider, entryId? }`. IDs are stable within the source-language lexicon and
+are derived from the entry wordKey, target language and normalized target text.
+Merging entries accumulates alternatives and their sources. `translation` remains
+the compatibility display label; it does not identify a lexical sense.
+
+Optional `senses` belong to the dictionary entry. A sense has `id`, `source`,
+optional `definition`, `domain`, `register`, `examples` and language-specific
+`translations` containing candidate IDs. Senses are stored only when a provider
+or a curator supplies them. Microsoft Dictionary Lookup supplies translation
+alternatives and statistical confidence, not sense IDs or contextual certainty.
+Migrating semicolon-separated labels creates candidates with `legacy` provenance
+and does not infer senses.
+
+Optional lesson `translationSelections[lang]` records each occurrence separately:
+`sourceSpan` (lesson-local UTF-16), `targetParagraphId`, `targetSpans`
+(paragraph-local UTF-16), `status`, `candidateIds`, `selectedCandidateId`, `senseId`
+and optional `evidence`. Status is `selected`, `ambiguous`, `unmatched`,
+`unaligned` or `missing_dictionary`. Evidence states `aligned_target_lemma` or
+`aligned_target_surface` and the actual target lemmas/surfaces. A unique matching
+translation candidate may be selected while its lexical sense remains unknown.
+Unresolved occurrences have a null selection; scores never break a tie.
+Occurrence choices are kept out of the global lexicon. Native OmniAlign pairs
+are preserved, including one-to-many and many-to-one pairs.
+
 # Named Entity Schema
 
 Current runtime lessons may include a separate `namedEntities` array:
